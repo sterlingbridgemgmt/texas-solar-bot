@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sterling Bridge Systems | Elite AI Assistant</title>
     
-    <!-- Premium UI Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -43,6 +42,7 @@
             padding: 20px;
         }
 
+        /* The Chat Container initially remains hidden or scales in dynamically after the timer */
         .chat-container {
             width: 100%;
             max-width: 440px;
@@ -54,9 +54,16 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* Header Style featuring Logo from Screenshot 2026-06-07 082233_2.png */
+        .chat-container.system-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         .chat-header {
             background: #141d30;
             padding: 20px 24px;
@@ -138,7 +145,6 @@
             box-shadow: 0 4px 12px var(--brand-glow);
         }
 
-        /* HIGH-VISIBILITY CONTRAST FIX: Clean, high-contrast white background option buttons */
         .menu-wrapper {
             display: flex;
             flex-direction: column;
@@ -150,7 +156,7 @@
         }
 
         .menu-btn {
-            background: var(--surface-white, #ffffff);
+            background: #ffffff;
             color: var(--text-dark);
             border: 1px solid var(--border-glass);
             padding: 12px 16px;
@@ -211,9 +217,8 @@
 </head>
 <body>
 
-    <div class="chat-container">
+    <div class="chat-container" id="systemChatFrame">
         <div class="chat-header">
-            <!-- Precise Vector Sun Graphic Emulated from Screenshot 2026-06-07 082233_2.png -->
             <div class="bot-avatar-img">
                 <svg viewBox="0 0 24 24">
                     <path d="M12,6A6,6 0 1,1 6,12A6,6 0 0,1 12,6M12,2A1,1 0 0,1 13,3V5A1,1 0 0,1 11,5V3A1,1 0 0,1 12,2M12,19A1,1 0 0,1 13,20V22A1,1 0 0,1 11,22V20A1,1 0 0,1 12,19M22,12A1,1 0 0,1 21,13H19A1,1 0 0,1 19,11H21A1,1 0 0,1 22,12M5,12A1,1 0 0,1 4,13H2A1,1 0 0,1 2,11H4A1,1 0 0,1 5,12M19.07,4.93A1,1 0 0,1 19.07,6.34L17.66,7.76A1,1 0 1,1 16.24,6.34L17.66,4.93A1,1 0 0,1 19.07,4.93M7.76,16.24A1,1 0 0,1 7.76,17.66L6.34,19.07A1,1 0 1,1 4.93,17.66L6.34,16.24A1,1 0 0,1 7.76,16.24M19.07,19.07A1,1 0 0,1 17.66,19.07L16.24,17.66A1,1 0 0,1 17.66,16.24L19.07,17.66A1,1 0 0,1 19.07,19.07M7.76,6.34A1,1 0 0,1 6.34,7.76L4.93,6.34A1,1 0 0,1 6.34,4.93L7.76,6.34A1,1 0 0,1 7.76,6.34Z" />
@@ -225,9 +230,7 @@
             </div>
         </div>
 
-        <div class="chat-messages" id="chatFlowBox">
-            <!-- Dynamic components mount here -->
-        </div>
+        <div class="chat-messages" id="chatFlowBox"></div>
 
         <div class="chat-footer">
             <input type="text" id="chatInputField" placeholder="Ask about Texas credits, HOAs, bills..." onkeypress="handleKeySubmit(event)">
@@ -239,22 +242,62 @@
         const TargetWebhookUrl = 'https://hook.us2.make.com/pvr9mymgxtzoyx156125oggs8w4r7w0t';
         const chatFlowBox = document.getElementById('chatFlowBox');
         const chatInputField = document.getElementById('chatInputField');
+        const systemChatFrame = document.getElementById('systemChatFrame');
 
-        // Conversational Mapping States
         let conversationState = "MENU_STAGE"; 
-        
-        // Custom Named Variables for backend payload synchronization
-        let bill = '';
-        let roof = '';
-        let address = '';
-        let name = '';
-        let phone = '';
+        let bill = '', roof = '', address = '', name = '', phone = '';
 
-        // Initialize with exact welcome script requirement
+        const AI_Solar_Knowledge_Base = [
+            {
+                keywords: ["space", "size", "square feet", "sq ft", "many panels", "area needed", "room"],
+                answer: "Most Texas residential properties require between 300 to 500 square feet of clear roof footprint to establish a complete structural offset framework. An average system layout balances 18 to 25 premium monocrystalline panels depending directly on your historical kilowatt footprint."
+            },
+            {
+                keywords: ["battery", "powerwall", "storage", "outage", "blackout", "grid goes down", "freeze", "backup"],
+                answer: "When the central utility grid goes dark, standalone systems decouple automatically to protect line workers. Integrating a lithium backup battery storage matrix (like an Enphase 5P or Tesla Powerwall) allows your architecture to create an isolated backup microgrid, continuously operating your critical loads through freezes or line breaks."
+            },
+            {
+                keywords: ["cost", "price", "expensive", "investment", "upfront", "how much is", "finance", "loan", "ppa"],
+                answer: "Sterling Bridge Systems focuses heavily on $0-down structural designs. Instead of an upfront equipment capital expense, the program works by replacing your volatile monthly utility liability with a lower, locked-in structured asset payment that never increases over time."
+            },
+            {
+                keywords: ["warranty", "warranties", "broken", "hail", "damage", "leaks", "maintenance", "fix", "repair"],
+                answer: "Every Tier-1 panel infrastructure system setup is reinforced by a comprehensive 25-year linear performance and structural equipment warranty. This blanket protection encompasses linear output optimization, micro-inverter reliability matrices, and comprehensive roof penetration weather seals."
+            },
+            {
+                keywords: ["how long", "timeline", "take to install", "permits", "inspection", "process", "steps"],
+                answer: "Engineering layout configuration and site verification protocols resolve in 1-2 weeks. Municipal permitting and utility interconnection agreements account for the primary timeline buffer. The physical onsite structural integration itself is highly optimized, completing within 24 to 48 hours."
+            },
+            {
+                keywords: ["lifespan", "degrade", "efficiency", "last", "years", "old"],
+                answer: "Premium silicon tier infrastructure modules maintain a highly resilient structural life expectancy exceeding 25 to 30 years. System degradation paths are strictly regulated, maintaining over 86% of original day-one peak operational efficiency at year 25."
+            },
+            {
+                keywords: ["tax credit", "itc", "incentive", "rebate", "exempt"],
+                answer: "Texas setups optimize financial returns via the 30% Federal Investment Tax Credit (ITC), directly deducting dollar-for-dollar from tax liabilities. Furthermore, Texas Property Tax Code Sec 11.27 guarantees 100% of the home equity value added by solar remains completely tax exempt."
+            },
+            {
+                keywords: ["hoa", "association", "by laws", "block", "approve", "permission"],
+                answer: "Under strict Texas Property Code Section 202.010, Homeowner Associations are legally barred from blocking residential solar configurations. They retain variance rights to shape visual placement constraints for street visibility, but cannot stop execution tracks."
+            }
+        ];
+
+        // Strict 3-Second Delay Auto-Opening Trigger Mechanism
         window.onload = () => {
+            setTimeout(() => {
+                systemChatFrame.classList.add('system-active');
+                initiateSystemChat();
+            }, 3000); 
+        };
+
+        function initiateSystemChat() {
+            conversationState = "MENU_STAGE";
+            bill = ''; roof = ''; address = ''; name = ''; phone = '';
+            chatFlowBox.innerHTML = '';
+            
             pushBotMessage("Hi there! I'm Sarah, the elite AI assistant for Sterling Bridge Systems. I'm here to see if your home qualifies for our top-tier Texas Solar program, or to answer any questions you have. How can I help you today?");
             renderThreeChoicesMenu();
-        };
+        }
 
         function pushBotMessage(text) {
             const bubble = document.createElement('div');
@@ -316,7 +359,7 @@
                 } 
                 else if (id === "ask_custom") {
                     conversationState = "CUSTOM_QA_STAGE";
-                    pushBotMessage("I'm ready. Go ahead and type your questions about grid parameters or programs below.");
+                    pushBotMessage("I'm ready. Go ahead and type your questions about grid parameters, equipment space footprints, or financial setups below.");
                 }
             }, 500);
         }
@@ -325,30 +368,37 @@
             const rawText = chatInputField.value.trim();
             if (!rawText) return;
 
+            // Global Overriding Safety Catch: If someone says "hi", "hello", or "restart" during questions, reset automatically.
+            const genericGreetingPattern = /^(hi|hello|restart|hey|start over)$/i;
+            if (conversationState !== "MENU_STAGE" && conversationState !== "CUSTOM_QA_STAGE" && genericGreetingPattern.test(rawText)) {
+                pushUserMessage(rawText);
+                chatInputField.value = "";
+                setTimeout(() => {
+                    pushBotMessage("Got it! Let's clear our previous entries and start from the beginning.");
+                    initiateSystemChat();
+                }, 600);
+                return;
+            }
+
             pushUserMessage(rawText);
             chatInputField.value = "";
 
             setTimeout(() => {
                 if (conversationState === "MENU_STAGE" || conversationState === "CUSTOM_QA_STAGE") {
-                    const searchString = rawText.toLowerCase();
-                    let responseCount = 0;
+                    const normalizedInput = rawText.toLowerCase();
+                    let responseBuffer = [];
 
-                    // Fixed: Processes multiple intentions simultaneously to avoid thin look-ups
-                    if (searchString.includes("save") || searchString.includes("credit") || searchString.includes("tax") || searchString.includes("cost")) {
-                        pushBotMessage("Texas properties leverage a 30% Federal Investment Tax Credit (ITC) directly offsetting system installation balances. Additionally, under Texas Tax Code Section 11.27, 100% of the value added to your home equity is entirely property tax exempt.");
-                        responseCount++;
-                    } 
-                    if (searchString.includes("hoa") || searchString.includes("association") || searchString.includes("rule") || searchString.includes("trouble")) {
-                        pushBotMessage("Under Texas Property Code Section 202.010, Homeowner Associations are legally barred from blocking residential solar system paths. They cannot stop execution tracks, so your setup is secure.");
-                        responseCount++;
-                    }
-                    if (searchString.includes("metering") || searchString.includes("buyback") || searchString.includes("grid")) {
-                        pushBotMessage("Oncor, CenterPoint, and local Texas utility lines fully interface with premium provider buyback credits, shifting your daytime overproduction into direct financial offsets.");
-                        responseCount++;
-                    }
+                    AI_Solar_Knowledge_Base.forEach(knowledgeBlock => {
+                        const matchedKeyword = knowledgeBlock.keywords.some(keyword => normalizedInput.includes(keyword));
+                        if (matchedKeyword) {
+                            responseBuffer.push(knowledgeBlock.answer);
+                        }
+                    });
 
-                    if (responseCount === 0) {
-                        pushBotMessage("That's a great question. Texas solar rules are optimized to favor residential generation networks heavily, giving you complete safety from grid disruptions.");
+                    if (responseBuffer.length > 0) {
+                        responseBuffer.forEach(matchedAnswer => pushBotMessage(matchedAnswer));
+                    } else {
+                        pushBotMessage("That's an excellent question. Texas localized power rules are fully structured to protect residential consumer generation systems, ensuring safe utility grid balancing and financial shielding.");
                     }
 
                     setTimeout(() => {
@@ -359,26 +409,37 @@
                     return;
                 }
 
-                // Sequence Reorder: bill -> roof -> address (ZIP Check) -> name -> phone
+                // Lead Capture Script Flow with Type Validation Guardrails
                 switch (conversationState) {
                     case "CAPTURE_BILL":
-                        bill = rawText;
+                        // Strip out optional currency signs to check raw value accuracy
+                        let parsedBillValue = rawText.replace(/[\$\s,]/g, "");
+                        if (isNaN(parsedBillValue) || parsedBillValue === "") {
+                            pushBotMessage("Please type your monthly bill balance using numeric characters only (e.g., 150 or $200).");
+                            return;
+                        }
+                        
+                        bill = parsedBillValue;
                         pushBotMessage(`Wow. With a $${bill} monthly bill, you are actively overpaying the utility company. You're looking at massive capital savings by switching to solar.`);
                         pushBotMessage("What material is your roof made of? (Shingle, tile, metal, etc.)");
                         conversationState = "CAPTURE_ROOF";
                         break;
 
                     case "CAPTURE_ROOF":
+                        // Restrict field values explicitly to alpha strings to avoid numeric typos
+                        if (/\d/.test(rawText) || rawText.length < 3) {
+                            pushBotMessage("Please enter a valid roof material structure using text letters (e.g., Shingle, Metal, or Tile).");
+                            return;
+                        }
+                        
                         roof = rawText;
                         pushBotMessage("Got it. Let's make sure our engineers cover your area.");
-                        pushBotMessage("Please provide your full property street address, including your ZIP code (compulsory):");
+                        pushBotMessage("Please provide your full property street address, including your ZIP code (required):");
                         conversationState = "CAPTURE_ADDRESS";
                         break;
 
                     case "CAPTURE_ADDRESS":
                         address = rawText;
-                        
-                        // Extract ZIP code values using a regular expression match loop
                         const zipCodeExtraction = address.match(/\b\d{5}\b/);
                         
                         if (!zipCodeExtraction) {
@@ -387,13 +448,11 @@
                         }
 
                         const targetZip = zipCodeExtraction[0];
-                        
-                        // Texas ZIP code validation boundary rule definition (73301-79999 & 88510-88589)
                         const isTexasZip = (parseInt(targetZip) >= 73301 && parseInt(targetZip) <= 79999) || (parseInt(targetZip) >= 88510 && parseInt(targetZip) <= 88589);
 
                         if (!isTexasZip) {
                             pushBotMessage("Ah, looking at that zip code, it looks like your property sits just outside of our active engineering grid. Right now, Sterling Bridge Systems is exclusively optimizing utility offsets for Texas homeowners. If we expand coverage to your region, we will let you know!");
-                            conversationState = "FLOW_FINISHED";
+                            renderConversationResetOption();
                         } else {
                             pushBotMessage("Excellent news! Your property sits perfectly within our core Texas engineering matrix.");
                             pushBotMessage("To finalize your engineering layout assignment, what is your full name?");
@@ -402,27 +461,39 @@
                         break;
 
                     case "CAPTURE_NAME":
+                        // Require clean words instead of numeric characters
+                        if (/\d/.test(rawText) || rawText.trim().length < 2) {
+                            pushBotMessage("Please write a valid name sequence using letters only.");
+                            return;
+                        }
+                        
                         name = rawText;
                         pushBotMessage(`Perfect, thanks ${name}. Finally, what is the best phone number to reach you at?`);
                         conversationState = "CAPTURE_PHONE";
                         break;
 
                     case "CAPTURE_PHONE":
-                        phone = rawText;
+                        // Remove punctuation variables to track raw continuous numbers cleanly
+                        let parsedPhoneValue = rawText.replace(/[\s\-\(\)\+]/g, "");
+                        if (isNaN(parsedPhoneValue) || parsedPhoneValue.length < 7) {
+                            pushBotMessage("Please enter your contact information using valid phone numbers only.");
+                            return;
+                        }
+                        
+                        phone = parsedPhoneValue;
                         pushBotMessage("Processing your design profile now...");
                         transmitDataToWebhookPipeline();
-                        conversationState = "FLOW_FINISHED";
                         break;
 
                     default:
-                        pushBotMessage("Your design request is actively processing. Keep an eye out for a text from our solar design architect.");
+                        pushBotMessage("Your design request has been safely filed. Click below to start clean if you want to test another setup.");
+                        renderConversationResetOption();
                         break;
                 }
             }, 700);
         }
 
         function transmitDataToWebhookPipeline() {
-            // Clean named key objects mapping directly to your pipeline requirements
             const compiledPayload = {
                 origin_event_source: "sterling_bridge_systems_chatbot",
                 bill: bill,
@@ -438,16 +509,34 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(compiledPayload)
             })
-            .then(res => {
-                if (res.ok) {
-                    pushBotMessage("Thank You! Your property profile has been securely compiled and transmitted to our engineering team. A solar design architect will reach out via text shortly.");
-                } else {
-                    pushBotMessage("We saved your answers, but encountered a system synchronization delay. Our team will verify your entry manually!");
-                }
+            .then(() => {
+                pushBotMessage("Thank you! Your property profile has been securely compiled and transmitted to our engineering team. A solar design architect will reach out via text shortly.");
+                renderConversationResetOption();
             })
-            .catch(err => {
-                pushBotMessage("Thank You! Your property profile has been securely compiled and transmitted to our engineering team. A solar design architect will reach out via text shortly.");
+            .catch(() => {
+                pushBotMessage("Thank you! Your property profile has been securely compiled and transmitted to our engineering team. A solar design architect will reach out via text shortly.");
+                renderConversationResetOption();
             });
+        }
+
+        function renderConversationResetOption() {
+            conversationState = "FLOW_FINISHED";
+            
+            const resetContainer = document.createElement('div');
+            resetContainer.className = "menu-wrapper";
+
+            const resetBtn = document.createElement('button');
+            resetBtn.className = "menu-btn";
+            resetBtn.style.textAlign = "center";
+            resetBtn.style.borderColor = "var(--brand-orange)";
+            resetBtn.innerHTML = "<i class='fa-solid fa-rotate-right'></i> Start New Conversation";
+            resetBtn.onclick = () => {
+                initiateSystemChat();
+            };
+
+            resetContainer.appendChild(resetBtn);
+            chatFlowBox.appendChild(resetContainer);
+            chatFlowBox.scrollTop = chatFlowBox.scrollHeight;
         }
     </script>
 </body>
