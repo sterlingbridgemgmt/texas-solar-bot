@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sterling Bridge Systems | Elite AI Assistant</title>
     
+    <!-- Premium UI Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -42,7 +43,6 @@
             padding: 20px;
         }
 
-        /* The Chat Container initially remains hidden or scales in dynamically after the timer */
         .chat-container {
             width: 100%;
             max-width: 440px;
@@ -55,13 +55,13 @@
             flex-direction: column;
             overflow: hidden;
             opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(24px) scale(0.98);
+            transition: all 0.65s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .chat-container.system-active {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
         }
 
         .chat-header {
@@ -247,9 +247,12 @@
         let conversationState = "MENU_STAGE"; 
         let bill = '', roof = '', address = '', name = '', phone = '';
 
+        // Compatible structure matching matrix
+        const SOLAR_COMPATIBLE_ROOFS = ["shingle", "shingles", "metal", "tile", "tiles", "composite", "asphalt", "concrete", "standing seam", "flat roof"];
+
         const AI_Solar_Knowledge_Base = [
             {
-                keywords: ["space", "size", "square feet", "sq ft", "many panels", "area needed", "room"],
+                keywords: ["space", "size", "square feet", "sq ft", "many panels", "area needed", "room", "footprint"],
                 answer: "Most Texas residential properties require between 300 to 500 square feet of clear roof footprint to establish a complete structural offset framework. An average system layout balances 18 to 25 premium monocrystalline panels depending directly on your historical kilowatt footprint."
             },
             {
@@ -277,12 +280,11 @@
                 answer: "Texas setups optimize financial returns via the 30% Federal Investment Tax Credit (ITC), directly deducting dollar-for-dollar from tax liabilities. Furthermore, Texas Property Tax Code Sec 11.27 guarantees 100% of the home equity value added by solar remains completely tax exempt."
             },
             {
-                keywords: ["hoa", "association", "by laws", "block", "approve", "permission"],
+                keywords: ["hoa", "association", "by laws", "block", "approve", "permission", "trouble"],
                 answer: "Under strict Texas Property Code Section 202.010, Homeowner Associations are legally barred from blocking residential solar configurations. They retain variance rights to shape visual placement constraints for street visibility, but cannot stop execution tracks."
             }
         ];
 
-        // Strict 3-Second Delay Auto-Opening Trigger Mechanism
         window.onload = () => {
             setTimeout(() => {
                 systemChatFrame.classList.add('system-active');
@@ -342,6 +344,7 @@
         }
 
         function handleMenuRouting(id, titleText) {
+            if (conversationState !== "MENU_STAGE") return; 
             pushUserMessage(titleText);
 
             setTimeout(() => {
@@ -355,7 +358,7 @@
                     setTimeout(() => {
                         conversationState = "CAPTURE_BILL";
                         pushBotMessage("On average, how much is your monthly electric bill?");
-                    }, 1500);
+                    }, 1200);
                 } 
                 else if (id === "ask_custom") {
                     conversationState = "CUSTOM_QA_STAGE";
@@ -368,15 +371,15 @@
             const rawText = chatInputField.value.trim();
             if (!rawText) return;
 
-            // Global Overriding Safety Catch: If someone says "hi", "hello", or "restart" during questions, reset automatically.
-            const genericGreetingPattern = /^(hi|hello|restart|hey|start over)$/i;
-            if (conversationState !== "MENU_STAGE" && conversationState !== "CUSTOM_QA_STAGE" && genericGreetingPattern.test(rawText)) {
+            // Restricted Global Reset catch to avoid wiping text when saying hello
+            const strictResetPattern = /^(restart|start over)$/i;
+            if (conversationState !== "MENU_STAGE" && conversationState !== "CUSTOM_QA_STAGE" && strictResetPattern.test(rawText)) {
                 pushUserMessage(rawText);
                 chatInputField.value = "";
                 setTimeout(() => {
                     pushBotMessage("Got it! Let's clear our previous entries and start from the beginning.");
                     initiateSystemChat();
-                }, 600);
+                }, 500);
                 return;
             }
 
@@ -401,18 +404,17 @@
                         pushBotMessage("That's an excellent question. Texas localized power rules are fully structured to protect residential consumer generation systems, ensuring safe utility grid balancing and financial shielding.");
                     }
 
+                    // Added a reading buffer delay here to keep answers on screen before options render
                     setTimeout(() => {
                         conversationState = "MENU_STAGE";
                         pushBotMessage("What step would you like to explore next?");
                         renderThreeChoicesMenu();
-                    }, 1500);
+                    }, 4000); 
                     return;
                 }
 
-                // Lead Capture Script Flow with Type Validation Guardrails
                 switch (conversationState) {
                     case "CAPTURE_BILL":
-                        // Strip out optional currency signs to check raw value accuracy
                         let parsedBillValue = rawText.replace(/[\$\s,]/g, "");
                         if (isNaN(parsedBillValue) || parsedBillValue === "") {
                             pushBotMessage("Please type your monthly bill balance using numeric characters only (e.g., 150 or $200).");
@@ -426,9 +428,12 @@
                         break;
 
                     case "CAPTURE_ROOF":
-                        // Restrict field values explicitly to alpha strings to avoid numeric typos
-                        if (/\d/.test(rawText) || rawText.length < 3) {
-                            pushBotMessage("Please enter a valid roof material structure using text letters (e.g., Shingle, Metal, or Tile).");
+                        const cleanRoofInput = rawText.toLowerCase().trim();
+                        // Strict solar-compatible material containment mapping lookup
+                        const isValidMaterial = SOLAR_COMPATIBLE_ROOFS.some(allowedType => cleanRoofInput.includes(allowedType));
+
+                        if (!isValidMaterial || /\d/.test(rawText) || rawText.length < 3) {
+                            pushBotMessage("Please enter a valid, solar-compatible roof structure material (e.g., Shingle, Metal, Tile, or Composite). We cannot install arrays on slate or wood roofs due to structural and fire liabilities.");
                             return;
                         }
                         
@@ -461,7 +466,6 @@
                         break;
 
                     case "CAPTURE_NAME":
-                        // Require clean words instead of numeric characters
                         if (/\d/.test(rawText) || rawText.trim().length < 2) {
                             pushBotMessage("Please write a valid name sequence using letters only.");
                             return;
@@ -473,7 +477,6 @@
                         break;
 
                     case "CAPTURE_PHONE":
-                        // Remove punctuation variables to track raw continuous numbers cleanly
                         let parsedPhoneValue = rawText.replace(/[\s\-\(\)\+]/g, "");
                         if (isNaN(parsedPhoneValue) || parsedPhoneValue.length < 7) {
                             pushBotMessage("Please enter your contact information using valid phone numbers only.");
@@ -486,11 +489,11 @@
                         break;
 
                     default:
-                        pushBotMessage("Your design request has been safely filed. Click below to start clean if you want to test another setup.");
+                        pushBotMessage("Your design request has been safely filed. Click below to start a new tracking loop.");
                         renderConversationResetOption();
                         break;
                 }
-            }, 700);
+            }, 600);
         }
 
         function transmitDataToWebhookPipeline() {
